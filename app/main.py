@@ -76,6 +76,10 @@ async def root():
         "description": "Storybook AI - Harry Potter Books 1-4 knowledge base"
     }
 
+@app.get("/health")
+async def root_health():
+    return {"status": "ok"}
+
 
 if __name__ == "__main__":
     import uvicorn
