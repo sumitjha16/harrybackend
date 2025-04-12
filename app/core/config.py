@@ -22,7 +22,7 @@ class Settings(BaseModel):
     RETRIEVAL_K: int = 5
 
     # LLM generation settings
-    MAX_NEW_TOKENS: int = 512
+    MAX_NEW_TOKENS: int = 1024
     TEMPERATURE: float = 0.7
     TOP_P: float = 0.95
     TOP_K: int = 50
