@@ -112,29 +112,39 @@ async def clear_memory():
     return {"status": "Memory cleared"}
 
 
+# In app/api/routes.py - Replace the generate_streaming_response function with this:
+
 async def generate_streaming_response(query: str, response_mode: str):
     """Generate streaming response"""
-    # This is a simplified implementation - in production you'd want to use SSE format
     rag_chain = get_rag_chain()
-    chain = rag_chain.get_conversation_chain(response_mode, streaming=True)
-
-    # In a real implementation, you'd use a proper streaming callback
-    # For simplicity, we're mocking it here
+    
+    # Get the system prompt and initialize the conversation chain
+    system_prompt = get_system_prompt(response_mode)
+    chain = rag_chain.get_conversation_chain(response_mode)
+    
+    # Send the initial "thinking" indicator
     yield "data: Thinking...\n\n"
-    await asyncio.sleep(0.5)
-
-    result = chain({"question": query, "system_prompt": get_system_prompt(response_mode)})
-    answer = result["answer"]
-
-    # Stream the answer in chunks
-    chunk_size = 20
-    for i in range(0, len(answer), chunk_size):
-        chunk = answer[i:i + chunk_size]
-        yield f"data: {chunk}\n\n"
-        await asyncio.sleep(0.1)
-
-    yield "data: [DONE]\n\n"
-
+    await asyncio.sleep(0.2)
+    
+    try:
+        # Get the full result
+        result = chain.invoke({"question": query})
+        answer = result.get("answer", "Sorry, I couldn't generate a response.")
+        
+        # Stream the answer in smaller chunks to prevent abrupt cutoffs
+        chunk_size = 50  # Increased from 20
+        for i in range(0, len(answer), chunk_size):
+            chunk = answer[i:i + chunk_size]
+            yield f"data: {chunk}\n\n"
+            await asyncio.sleep(0.05)  # Reduced delay for smoother streaming
+        
+        # Properly signal the end of the stream
+        yield "data: [DONE]\n\n"
+        
+    except Exception as e:
+        logger.error(f"Error in streaming response: {e}")
+        yield f"data: Error generating response: {str(e)}\n\n"
+        yield "data: [DONE]\n\n"
 
 def update_metrics(operation: str, input_length: int):
     """Update metrics after response generation"""
